@@ -1,7 +1,10 @@
 body {
-  background-color: #eee;
+  background-color: #ffffff;
   display: flex;
   font-family: 'Muli', sans-serif;
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+
 }
 
 .contract, .existing-contracts {

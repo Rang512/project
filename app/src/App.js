@@ -2,6 +2,8 @@ import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import deploy from './deploy';
 import Escrow from './Escrow';
+import Escrow2 from './artifacts/contracts/Escrow.sol/Escrow';
+
 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
 
@@ -14,6 +16,10 @@ function App() {
   const [escrows, setEscrows] = useState([]);
   const [account, setAccount] = useState();
   const [signer, setSigner] = useState();
+  const [arbiter, setArbiter] = useState("");
+  const [beneficiary, setBeneficiary] = useState("");
+  const [balance, setBalance] = useState("");
+  const [contractAddress,setContractAddress] = useState("")
 
   useEffect(() => {
     async function getAccounts() {
@@ -29,15 +35,15 @@ function App() {
   async function newContract() {
     const beneficiary = document.getElementById('beneficiary').value;
     const arbiter = document.getElementById('arbiter').value;
-    const value = ethers.BigNumber.from(document.getElementById('wei').value);
-    const escrowContract = await deploy(signer, arbiter, beneficiary, value);
-
+    const valueInEth = document.getElementById('eth').value;
+    const valueInWei = ethers.utils.parseEther(valueInEth); 
+    const escrowContract = await deploy(signer, arbiter, beneficiary, valueInWei);
 
     const escrow = {
       address: escrowContract.address,
       arbiter,
       beneficiary,
-      value: value.toString(),
+      value: valueInEth.toString(),
       handleApprove: async () => {
         escrowContract.on('Approved', () => {
           document.getElementById(escrowContract.address).className =
@@ -52,6 +58,32 @@ function App() {
 
     setEscrows([...escrows, escrow]);
   }
+
+
+
+
+async function handleConnectContract(){
+  const contractAddress = document.getElementById('contractAddress').value;
+  const contract = new ethers.Contract(
+    contractAddress,
+    Escrow2.abi,
+    provider
+  );
+  const arbiterAddress = await contract.arbiter();
+  const beneficiaryAddress = await contract.beneficiary();
+  const balance = await provider.getBalance(contractAddress);
+  setArbiter(arbiterAddress);
+  setBeneficiary(beneficiaryAddress);
+  setBalance(ethers.utils.formatEther(balance));
+  setContractAddress(contractAddress);
+
+
+  
+  // console.log(ethers.utils.formatEther(balance));
+  // console.log(arbiterAddress);
+  // console.log(beneficiaryAddress);
+}
+
 
   return (
     <>
@@ -68,8 +100,8 @@ function App() {
         </label>
 
         <label>
-          Deposit Amount (in Wei)
-          <input type="text" id="wei" />
+          Deposit Amount (in Eth)
+          <input type="text" id="eth" />
         </label>
 
         <div
@@ -94,6 +126,40 @@ function App() {
           })}
         </div>
       </div>
+
+      
+      <div className="Findcontract">
+        <h1> Find Contract </h1>
+        <label>
+          contract Address
+          <input type="text" id="contractAddress" />
+        </label>
+
+        <div
+          className="button"
+          id="find"
+          onClick={(e) => {
+            e.preventDefault();
+
+            handleConnectContract();
+          }}
+        >
+          start
+        </div>
+      </div>
+
+      {contractAddress && (
+        <div className="contract-details">
+          <h2>Contract Details</h2>
+          <p><strong>Contract Address:</strong> {contractAddress}</p>
+          <p><strong>Arbiter:</strong> {arbiter}</p>
+          <p><strong>Beneficiary:</strong> {beneficiary}</p>
+          <p><strong>Balance:</strong> {balance} ETH</p>
+          
+        </div>
+      )}
+
+      
     </>
   );
 }
